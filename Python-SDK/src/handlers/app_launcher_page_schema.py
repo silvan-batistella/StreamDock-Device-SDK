@@ -1,50 +1,54 @@
-# Python-SDK/src/handlers/multimedia_page_schema.py  
+# Python-SDK/src/handlers/app_launcher_page_schema.py  
   
 #####################################################################################  
 #  
 # PT_BR:  
-# Página "multimedia_page_schema" para o K1 PRO.  
+# Página "app_launcher_page_schema" para o K1 PRO.  
 #  
 # Responsabilidades:  
-#   1. VISUAL: Exibe os nomes dos controles de mídia nas 6 teclas:  
-#        Linha 1: RTHMB     - PLAY/PAUSE - SHFFL  
-#        Linha 2: PREV      - STOP       - NEXT  
+#   1. VISUAL: Exibe os nomes dos aplicativos nas 6 teclas:  
+#        Linha 1: FERDIUM   - CHR SOCIN  - CHR BTL  
+#        Linha 2: ECLIPSE   - INTELLIJ   - DBEAVER  
 #      Cada tecla recebe uma imagem 64x64 com o nome centralizado em fundo preto.  
 #  
-#   2. COMPORTAMENTO: Ao pressionar uma tecla, executa a ação correspondente:  
-#        KEY_1: Abre/foca o Rhythmbox  
-#        KEY_2: Play/Pause via XF86AudioPlay  
-#        KEY_3: Toggle shuffle via playerctl  
-#        KEY_4: Faixa anterior via XF86AudioPrev  
-#        KEY_5: Parar reprodução via XF86AudioStop  
-#        KEY_6: Próxima faixa via XF86AudioNext  
+#   2. COMPORTAMENTO: Ao pressionar uma tecla, lança o aplicativo correspondente:  
+#        KEY_1: Ferdium (mensageiro unificado)  
+#        KEY_2: Google Chrome — perfil "Profile 1" (Socin)  
+#        KEY_3: Google Chrome — perfil "Default" (Btl)  
+#        KEY_4: Eclipse IDE  
+#        KEY_5: IntelliJ IDEA Community  
+#        KEY_6: DBeaver Community Edition  
 #  
 # Dependências externas:  
-#   - xdotool (simulação de teclas de mídia)  
-#   - playerctl (controle de shuffle via MPRIS2)  
-#   - rhythmbox (player de música)  
+#   - ferdium  
+#   - google-chrome  
+#   - /xpto/dev/ide/eclipse/eclipse  
+#   - intellij-idea-community  
+#   - dbeaver-ce  
 #  
 # EN_US:  
-# "multimedia_page_schema" page for the K1 PRO.  
+# "app_launcher_page_schema" page for the K1 PRO.  
 #  
 # Responsibilities:  
-#   1. VISUAL: Displays media control names on the device's 6 keys:  
-#        Row 1: RTHMB     - PLAY/PAUSE - SHFFL  
-#        Row 2: PREV      - STOP       - NEXT  
+#   1. VISUAL: Displays application names on the device's 6 keys:  
+#        Row 1: FERDIUM   - CHR SOCIN  - CHR BTL  
+#        Row 2: ECLIPSE   - INTELLIJ   - DBEAVER  
 #      Each key receives a 64x64 image with the name centered on a black background.  
 #  
-#   2. BEHAVIOR: When a key is pressed, executes the corresponding action:  
-#        KEY_1: Opens/focuses Rhythmbox  
-#        KEY_2: Play/Pause via XF86AudioPlay  
-#        KEY_3: Toggle shuffle via playerctl  
-#        KEY_4: Previous track via XF86AudioPrev  
-#        KEY_5: Stop playback via XF86AudioStop  
-#        KEY_6: Next track via XF86AudioNext  
+#   2. BEHAVIOR: When a key is pressed, launches the corresponding application:  
+#        KEY_1: Ferdium (unified messenger)  
+#        KEY_2: Google Chrome — profile "Profile 1" (Socin)  
+#        KEY_3: Google Chrome — profile "Default" (Btl)  
+#        KEY_4: Eclipse IDE  
+#        KEY_5: IntelliJ IDEA Community  
+#        KEY_6: DBeaver Community Edition  
 #  
 # External dependencies:  
-#   - xdotool (media key simulation)  
-#   - playerctl (shuffle control via MPRIS2)  
-#   - rhythmbox (music player)  
+#   - ferdium  
+#   - google-chrome  
+#   - /xpto/dev/ide/eclipse/eclipse  
+#   - intellij-idea-community  
+#   - dbeaver-ce  
 #  
 ######################################################################################  
   
@@ -53,7 +57,6 @@ from StreamDock.ImageHelpers.PILHelper import create_key_image
 from StreamDock.Devices.K1Pro import K1Pro  
 from StreamDock.InputTypes import EventType, ButtonKey  
 import os  
-import time  
 import random  
 import subprocess  
   
@@ -75,12 +78,12 @@ import subprocess
 ######################################################################################  
   
 KEY_LABELS = {  
-    1: "Rthmb",           # Rhythmbox  
-    2: "Play\nPause",     # Play/Pause  
-    3: "Shffl",           # Shuffle toggle  
-    4: "Prev",            # Previous track  
-    5: "Stop",            # Stop  
-    6: "Next",            # Next track  
+    1: "Frdm",            # Ferdium  
+    2: "Chrm\nSCN",      # Chrome — Profile 1 (Socin)  
+    3: "Chrm\nBtl",        # Chrome — Default (Btl)  
+    4: "Eclps",           # Eclipse IDE  
+    5: "Intlj",           # IntelliJ IDEA Community  
+    6: "DBvr",            # DBeaver CE  
 }  
   
   
@@ -163,81 +166,30 @@ def _generate_label_image(device: K1Pro, label: str) -> str:
   
   
 # =============================================================================  
-# PT_BR: FUNÇÕES AUXILIARES — RHYTHMBOX  
-# EN_US: HELPER FUNCTIONS — RHYTHMBOX  
-# =============================================================================  
-  
-def _is_rhythmbox_running() -> bool:  
-    """  
-    PT_BR: Verifica se o Rhythmbox já está rodando via pgrep.  
-    EN_US: Checks if Rhythmbox is already running via pgrep.  
-    """  
-    try:  
-        result = subprocess.run(  
-            ["pgrep", "-x", "rhythmbox"],  
-            stdout=subprocess.DEVNULL,  
-            stderr=subprocess.DEVNULL,  
-        )  
-        return result.returncode == 0  
-    except Exception:  
-        return False  
-  
-  
-def _open_rhythmbox():  
-    """  
-    PT_BR:  
-    Garante que o Rhythmbox está rodando e foca a janela.  
-    Se o Rhythmbox não estiver ativo, inicia o processo e aguarda.  
-  
-    EN_US:  
-    Ensures Rhythmbox is running and focuses the window.  
-    If Rhythmbox is not active, starts the process and waits.  
-    """  
-    if not _is_rhythmbox_running():  
-        print("Rhythmbox não está rodando. Iniciando...", flush=True)  
-        _run_cmd(["rhythmbox"])  
-  
-        # PT_BR: Aguarda o Rhythmbox subir (máx ~3s)  
-        # EN_US: Waits for Rhythmbox to start (max ~3s)  
-        retries = 10  
-        while retries > 0 and not _is_rhythmbox_running():  
-            time.sleep(0.3)  
-            retries -= 1  
-  
-        if not _is_rhythmbox_running():  
-            print("Falha ao iniciar o Rhythmbox.", flush=True)  
-            return  
-  
-    # PT_BR: Foca a janela do Rhythmbox via wmctrl  
-    # EN_US: Focuses the Rhythmbox window via wmctrl  
-    _run_cmd(["wmctrl", "-a", "Rhythmbox"])  
-  
-  
-# =============================================================================  
 # PT_BR: FUNÇÃO PRINCIPAL DA PÁGINA  
 # EN_US: PAGE MAIN FUNCTION  
 # =============================================================================  
   
-def apply_multimedia_page_schema(device: K1Pro):  
+def apply_app_launcher_page_schema(device: K1Pro):  
     """  
     PT_BR:  
-    Aplica a página "multimedia_page_schema" no dispositivo K1Pro.  
-    Gera imagens com os nomes dos controles de mídia e envia para o dispositivo.  
+    Aplica a página "app_launcher_page_schema" no dispositivo K1Pro.  
+    Gera imagens com os nomes dos aplicativos e envia para o dispositivo.  
   
     Layout:  
-        KEY_1: RTHMB     KEY_2: PLAY/PAUSE   KEY_3: SHFFL  
-        KEY_4: PREV      KEY_5: STOP         KEY_6: NEXT  
+        KEY_1: FRDM      KEY_2: CHR SOCIN   KEY_3: CHR BTL  
+        KEY_4: ECLPS      KEY_5: INTLJ       KEY_6: DBVR  
   
     Args:  
         device: instância do K1Pro já aberta e inicializada.  
   
     EN_US:  
-    Applies the "multimedia_page_schema" page to the K1Pro device.  
-    Generates images with media control names and sends them to the device.  
+    Applies the "app_launcher_page_schema" page to the K1Pro device.  
+    Generates images with application names and sends them to the device.  
   
     Layout:  
-        KEY_1: RTHMB     KEY_2: PLAY/PAUSE   KEY_3: SHFFL  
-        KEY_4: PREV      KEY_5: STOP         KEY_6: NEXT  
+        KEY_1: FRDM      KEY_2: CHR SOCIN   KEY_3: CHR BTL  
+        KEY_4: ECLPS      KEY_5: INTLJ       KEY_6: DBVR  
   
     Args:  
         device: K1Pro instance already opened and initialized.  
@@ -260,54 +212,86 @@ def apply_multimedia_page_schema(device: K1Pro):
   
 ######################################################################################  
 #  
-# PT_BR: MAPEAMENTO DE TECLAS → AÇÕES  
+# PT_BR: MAPEAMENTO DE TECLAS → COMANDOS DE LANÇAMENTO  
 #  
-# KEY_ACTIONS: dicionário {ButtonKey: str} que mapeia cada tecla do K1Pro  
-#   para a ação correspondente.  
-#  
-#   Layout:  
-#     KEY_1: rhythmbox      KEY_2: play_pause    KEY_3: shuffle  
-#     KEY_4: prev           KEY_5: stop          KEY_6: next  
-#  
-# EN_US: KEY → ACTION MAPPING  
-#  
-# KEY_ACTIONS: dict {ButtonKey: str} mapping each K1Pro key  
-#   to the corresponding action.  
+# KEY_COMMANDS: dicionário {ButtonKey: list[str]} que mapeia cada tecla do K1Pro  
+#   para o comando de lançamento do aplicativo (formato subprocess).  
 #  
 #   Layout:  
-#     KEY_1: rhythmbox      KEY_2: play_pause    KEY_3: shuffle  
-#     KEY_4: prev           KEY_5: stop          KEY_6: next  
+#     KEY_1: ferdium                          KEY_2: chrome (Profile 1)   KEY_3: chrome (Default)  
+#     KEY_4: eclipse                          KEY_5: intellij             KEY_6: dbeaver  
+#  
+# EN_US: KEY → LAUNCH COMMAND MAPPING  
+#  
+# KEY_COMMANDS: dict {ButtonKey: list[str]} mapping each K1Pro key  
+#   to the application launch command (subprocess format).  
+#  
+#   Layout:  
+#     KEY_1: ferdium                          KEY_2: chrome (Profile 1)   KEY_3: chrome (Default)  
+#     KEY_4: eclipse                          KEY_5: intellij             KEY_6: dbeaver  
 #  
 ######################################################################################  
   
-KEY_ACTIONS = {  
-    ButtonKey.KEY_1: "rhythmbox",  
-    ButtonKey.KEY_2: "play_pause",  
-    ButtonKey.KEY_3: "shuffle",  
-    ButtonKey.KEY_4: "prev",  
-    ButtonKey.KEY_5: "stop",  
-    ButtonKey.KEY_6: "next",  
+KEY_COMMANDS = {  
+    ButtonKey.KEY_1: ["ferdium"],  
+    ButtonKey.KEY_2: ["google-chrome", "--profile-directory=Profile 1"],  
+    ButtonKey.KEY_3: ["google-chrome", "--profile-directory=Default"],  
+    ButtonKey.KEY_4: ["/xpto/dev/ide/eclipse/eclipse/eclipse"],  
+    ButtonKey.KEY_5: ["intellij-idea-community"],  
+    ButtonKey.KEY_6: ["dbeaver-ce"],  
 }  
   
   
 def handle_key_press(event):  
+    """  
+    PT_BR:  
+    Handler de pressionamento de teclas da página app_launcher_page_schema.  
+  
+    Quando uma tecla do K1Pro é pressionada (state == 1), lança o aplicativo  
+    correspondente via subprocess.Popen (não-bloqueante).  
+    Eventos de release (state == 0) são ignorados.  
+  
+    Aplicativos:  
+        KEY_1: Ferdium (mensageiro unificado)  
+        KEY_2: Google Chrome — perfil "Profile 1" (Socin)  
+        KEY_3: Google Chrome — perfil "Default" (Btl)  
+        KEY_4: Eclipse IDE (/xpto/dev/ide/eclipse/eclipse)  
+        KEY_5: IntelliJ IDEA Community  
+        KEY_6: DBeaver Community Edition  
+  
+    Args:  
+        event: InputEvent com event_type == EventType.BUTTON  
+  
+    EN_US:  
+    Key press handler for the app_launcher_page_schema page.  
+  
+    When a K1Pro key is pressed (state == 1), launches the corresponding  
+    application via subprocess.Popen (non-blocking).  
+    Release events (state == 0) are ignored.  
+  
+    Applications:  
+        KEY_1: Ferdium (unified messenger)  
+        KEY_2: Google Chrome — profile "Profile 1" (Socin)  
+        KEY_3: Google Chrome — profile "Default" (Btl)  
+        KEY_4: Eclipse IDE (/xpto/dev/ide/eclipse/eclipse)  
+        KEY_5: IntelliJ IDEA Community  
+        KEY_6: DBeaver Community Edition  
+  
+    Args:  
+        event: InputEvent with event_type == EventType.BUTTON  
+    """  
+    # PT_BR: Só age no pressionamento, ignora release  
+    # EN_US: Only acts on press, ignores release  
     if event.state != 1:  
         return  
   
-    action = KEY_ACTIONS.get(event.key)  
-    if action is None:  
-        print(f"Key {event.key} has no action mapped.", flush=True)  
+    # PT_BR: Busca o comando de lançamento correspondente  
+    # EN_US: Looks up the corresponding launch command  
+    cmd = KEY_COMMANDS.get(event.key)  
+    if cmd is None:  
+        print(f"Key {event.key} has no command mapped.", flush=True)  
         return  
   
-    if action == "rhythmbox":  
-        _open_rhythmbox()  
-    elif action == "play_pause":  
-        _run_cmd(["playerctl", "play-pause"])  
-    elif action == "shuffle":  
-        _run_cmd(["playerctl", "shuffle", "Toggle"])  
-    elif action == "prev":  
-        _run_cmd(["playerctl", "previous"])  
-    elif action == "stop":  
-        _run_cmd(["playerctl", "stop"])  
-    elif action == "next":  
-        _run_cmd(["playerctl", "next"])
+    # PT_BR: Lança o aplicativo de forma assíncrona  
+    # EN_US: Launches the application asynchronously  
+    _run_cmd(cmd)

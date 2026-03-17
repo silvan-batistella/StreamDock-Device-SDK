@@ -207,7 +207,7 @@ def _run_cmd(cmd):
     EN_US: Executes command asynchronously (non-blocking).  
     """  
     try:  
-        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  
+        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)  
     except Exception as e:  
         print(f"Command error: {e}", flush=True)  
   

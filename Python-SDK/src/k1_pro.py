@@ -41,6 +41,10 @@ from handlers.multimedia_page_schema import (
     handle_key_press as media_handle_key,  
 )  
 from handlers.eclipse_debug_page_schema import apply_eclipse_debug_page_schema, handle_key_press as eclipse_handle_key
+from handlers.app_launcher_page_schema import (  
+    apply_app_launcher_page_schema,  
+    handle_key_press as launcher_handle_key,  
+) 
 import threading  
 import time  
   
@@ -50,6 +54,7 @@ register_page("Keyboard", "dflt", apply_default_keyboard_schema, default_handle_
 register_page("Tools",    "util", apply_tools_page_schema,        tools_handle_key)  
 register_page("Media", "mdia", apply_multimedia_page_schema, media_handle_key)
 register_page("Eclipse Debug", "eclp", apply_eclipse_debug_page_schema, eclipse_handle_key)
+register_page("App Launcher", "appl", apply_app_launcher_page_schema, launcher_handle_key)
 
 
 # ─── Knob handlers ────────────────────────────────────────────────────  
