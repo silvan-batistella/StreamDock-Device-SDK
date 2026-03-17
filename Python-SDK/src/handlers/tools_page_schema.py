@@ -426,7 +426,6 @@ def _read_password() -> str:
         print(f"Erro ao ler senha: {e}", flush=True)  
         return ""  
   
-  
 def _pause_pano():  
     """  
     PT_BR: Desabilita a extensão Pano (clipboard manager) temporariamente.  
@@ -452,78 +451,37 @@ def _resume_pano():
 def _type_password():  
     """  
     PT_BR:  
-    Lê a senha de ~/.password, cola no campo focado via clipboard e pressiona Enter.  
-    Pausa o Pano clipboard manager durante a operação para que a senha  
-    não fique armazenada no histórico do clipboard.  
+    Lê a senha de ~/.password e copia para o clipboard via xclip.  
+    O usuário cola manualmente (Ctrl+V) onde desejar.  
+    Não faz paste automático nem pressiona Enter.  
   
     Fluxo:  
         1. Lê a senha do arquivo  
-        2. Pausa o Pano  
-        3. Copia a senha para o clipboard via xclip  
-        4. Cola com Ctrl+V  
-        5. Pressiona Enter  
-        6. Limpa o clipboard  
-        7. Reativa o Pano  
+        2. Copia a senha para o clipboard via xclip  
   
     EN_US:  
-    Reads the password from ~/.password, pastes it into the focused field  
-    via clipboard and presses Enter.  
-    Pauses the Pano clipboard manager during the operation so the password  
-    is not stored in the clipboard history.  
+    Reads the password from ~/.password and copies it to the clipboard  
+    via xclip. The user pastes manually (Ctrl+V) wherever needed.  
+    Does not auto-paste or press Enter.  
   
     Flow:  
         1. Reads the password from file  
-        2. Pauses Pano  
-        3. Copies the password to clipboard via xclip  
-        4. Pastes with Ctrl+V  
-        5. Presses Enter  
-        6. Clears the clipboard  
-        7. Re-enables Pano  
+        2. Copies the password to clipboard via xclip  
     """  
     password = _read_password()  
     if not password:  
         return  
   
-    # PT_BR: Pausa o Pano para não capturar a senha no histórico  
-    # EN_US: Pauses Pano to prevent capturing the password in history  
-    _pause_pano()  
-  
     # PT_BR: Copia a senha para o clipboard via xclip  
-    # EN_US: Copies the password to clipboard via xclip  
+    # EN_US: Copies the password to clipboard via xclip
     proc = subprocess.Popen(  
         ["xclip", "-selection", "clipboard"],  
         stdin=subprocess.PIPE,  
         stdout=subprocess.DEVNULL,  
         stderr=subprocess.DEVNULL,  
     )  
-    proc.communicate(password.encode())  
-    time.sleep(0.05)  
-  
-    # PT_BR: Cola com Ctrl+V e pressiona Enter  
-    # EN_US: Pastes with Ctrl+V and presses Enter  
-    subprocess.run(  
-        ["xdotool", "key", "--clearmodifiers", "ctrl+v"],  
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,  
-    )  
-    subprocess.run(  
-        ["xdotool", "key", "--clearmodifiers", "Return"],  
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,  
-    )  
-  
-    # PT_BR: Limpa o clipboard e reativa o Pano  
-    # EN_US: Clears the clipboard and re-enables Pano  
-    time.sleep(0.05)  
-    proc = subprocess.Popen(  
-        ["xclip", "-selection", "clipboard"],  
-        stdin=subprocess.PIPE,  
-        stdout=subprocess.DEVNULL,  
-        stderr=subprocess.DEVNULL,  
-    )  
-    proc.communicate(b"")  
-  
-    _resume_pano()  
-  
-  
+    proc.communicate(password.encode())
+    
 # =============================================================================  
 # PT_BR: FUNÇÃO PRINCIPAL DA PÁGINA  
 # EN_US: PAGE MAIN FUNCTION  
