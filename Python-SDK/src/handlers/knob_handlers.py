@@ -26,13 +26,13 @@
 #   a SINGLE volume change proportional to the total displacement.  
 #  
 #   Example speaker: rotated 4 ticks right → applies +50% (4 * 12.5%)  
-#   Example mic:     rotated 3 ticks right → applies +60% (3 * 20%) 
+#   Example mic:     rotated 3 ticks right → applies +60% (3 * 20%)  
 #  
 ######################################################################################  
   
-import subprocess  
 import threading  
 from StreamDock.InputTypes import EventType, Direction  
+from utils.commands import run_cmd  
   
   
 ######################################################################################  
@@ -41,8 +41,8 @@ from StreamDock.InputTypes import EventType, Direction
 #  
 # VOLUME_STEP_INT: valor inteiro do step de volume em pontos percentuais.  
 #   Cada tick líquido do knob muda o volume em VOLUME_STEP_INT%.  
-#   O total aplicado é: saldo_liquido * VOLUME_STEP_INT
-#   
+#   O total aplicado é: saldo_liquido * VOLUME_STEP_INT  
+#  
 # MIC_STEP_INT: step de volume do microfone em pontos percentuais.  
 #   Cada tick líquido do knob de mic muda o volume em MIC_STEP_INT%.  
 #   O total aplicado é: saldo_liquido * MIC_STEP_INT  
@@ -57,11 +57,11 @@ from StreamDock.InputTypes import EventType, Direction
 #  
 # VOLUME_STEP_INT: integer value of the volume step in percentage points.  
 #   Each net knob tick changes volume by VOLUME_STEP_INT%.  
-#   Total applied is: net_displacement * VOLUME_STEP_INT
-#   
+#   Total applied is: net_displacement * VOLUME_STEP_INT  
+#  
 # MIC_STEP_INT: microphone volume step in percentage points.  
 #   Each net mic knob tick changes volume by MIC_STEP_INT%.  
-#   Total applied is: net_displacement * MIC_STEP_INT
+#   Total applied is: net_displacement * MIC_STEP_INT  
 #  
 # DEBOUNCE_SECONDS: time in seconds to wait after the last tick  
 #   before applying the change. 0.05 = 50ms is a good value.  
@@ -71,7 +71,7 @@ from StreamDock.InputTypes import EventType, Direction
 #  
 ######################################################################################  
   
-VOLUME_STEP_INT = 12.5
+VOLUME_STEP_INT = 12.5  
 MIC_STEP_INT = 20  
 DEBOUNCE_SECONDS = 0.05  
   
@@ -116,16 +116,6 @@ _lock = threading.Lock()
 # PT_BR: FUNÇÕES AUXILIARES  
 # EN_US: HELPER FUNCTIONS  
 # =============================================================================  
-  
-def _run_cmd(cmd):  
-    """  
-    PT_BR: Executa comando de forma assíncrona (não-bloqueante).  
-    EN_US: Executes command asynchronously (non-blocking).  
-    """  
-    try:  
-        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  
-    except Exception as e:  
-        print(f"Command error: {e}", flush=True)  
   
 def _accumulate(key, delta, apply_fn):  
     """  
@@ -215,7 +205,7 @@ def _apply_speaker_volume(net_ticks):
     """  
     total = abs(net_ticks) * VOLUME_STEP_INT  
     sign = "+" if net_ticks > 0 else "-"  
-    _run_cmd(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{sign}{total}%"])  
+    run_cmd(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{sign}{total}%"])  
   
   
 def _apply_mic_volume(net_ticks):  
@@ -230,7 +220,7 @@ def _apply_mic_volume(net_ticks):
     """  
     total = abs(net_ticks) * MIC_STEP_INT  
     sign = "+" if net_ticks > 0 else "-"  
-    _run_cmd(["pactl", "set-source-volume", "@DEFAULT_SOURCE@", f"{sign}{total}%"])  
+    run_cmd(["pactl", "set-source-volume", "@DEFAULT_SOURCE@", f"{sign}{total}%"])  
   
 # =============================================================================  
 # KNOB 1 - PLACEHOLDER  
@@ -277,7 +267,7 @@ def handle_knob_2(event_type, direction=None, state=None):
         if state == 1:  
             # PT_BR: Mute/unmute é imediato, não precisa de debounce.  
             # EN_US: Mute/unmute is immediate, no debounce needed.  
-            _run_cmd(["pactl", "set-source-mute", "@DEFAULT_SOURCE@", "toggle"])  
+            run_cmd(["pactl", "set-source-mute", "@DEFAULT_SOURCE@", "toggle"])  
   
 # =============================================================================  
 # KNOB 3 - VOLUME DE SAÍDA (COM DEBOUNCE)  
@@ -306,4 +296,4 @@ def handle_knob_3(event_type, direction=None, state=None):
         if state == 1:  
             # PT_BR: Mute/unmute é imediato, não precisa de debounce.  
             # EN_US: Mute/unmute is immediate, no debounce needed.  
-            _run_cmd(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"])
+            run_cmd(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"])

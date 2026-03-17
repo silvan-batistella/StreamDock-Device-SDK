@@ -1,5 +1,3 @@
-# Python-SDK/src/handlers/gnome_system_page_schema.py  
-  
 #####################################################################################  
 #  
 # PT_BR:  
@@ -54,13 +52,10 @@
 #  
 ######################################################################################  
   
-from PIL import Image, ImageDraw, ImageFont  
-from StreamDock.ImageHelpers.PILHelper import create_key_image  
 from StreamDock.Devices.K1Pro import K1Pro  
-from StreamDock.InputTypes import EventType, ButtonKey  
-import os  
-import random  
-import subprocess  
+from StreamDock.InputTypes import ButtonKey  
+from utils.commands import run_cmd  
+from utils.image import render_keys_from_labels  
   
   
 ######################################################################################  
@@ -87,88 +82,6 @@ KEY_LABELS = {
     5: "OBS",             # OBS Studio  
     6: "Lutrs",           # Lutris  
 }  
-  
-  
-# =============================================================================  
-# PT_BR: FUNÇÕES AUXILIARES — EXECUÇÃO DE COMANDOS  
-# EN_US: HELPER FUNCTIONS — COMMAND EXECUTION  
-# =============================================================================  
-  
-def _run_cmd(cmd):  
-    """  
-    PT_BR: Executa comando de forma assíncrona (não-bloqueante).  
-           Usa start_new_session=True para desacoplar o processo filho  
-           do terminal/script pai (sobrevive ao encerramento do pai).  
-    EN_US: Executes command asynchronously (non-blocking).  
-           Uses start_new_session=True to detach the child process  
-           from the parent terminal/script (survives parent termination).  
-    """  
-    try:  
-        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)  
-    except Exception as e:  
-        print(f"Command error: {e}", flush=True)  
-  
-  
-# =============================================================================  
-# PT_BR: FUNÇÕES AUXILIARES — GERAÇÃO DE IMAGENS  
-# EN_US: HELPER FUNCTIONS — IMAGE GENERATION  
-# =============================================================================  
-  
-def _generate_label_image(device: K1Pro, label: str) -> str:  
-    """  
-    PT_BR:  
-    Gera uma imagem 64x64 com o texto centralizado e salva como JPEG temporário.  
-    Retorna o path do arquivo temporário gerado.  
-  
-    Args:  
-        device: instância do K1Pro (usada para obter o formato da tecla).  
-        label:  texto a ser renderizado na imagem.  
-  
-    Returns:  
-        str: caminho do arquivo JPEG temporário.  
-  
-    EN_US:  
-    Generates a 64x64 image with centered text and saves it as a temporary JPEG.  
-    Returns the path of the generated temporary file.  
-  
-    Args:  
-        device: K1Pro instance (used to get the key image format).  
-        label:  text to render on the image.  
-  
-    Returns:  
-        str: path to the temporary JPEG file.  
-    """  
-    # PT_BR: Cria imagem preta no tamanho da tecla (64x64)  
-    # EN_US: Creates a black image in the key size (64x64)  
-    img = create_key_image(device, background="black")  
-    draw = ImageDraw.Draw(img)  
-  
-    # PT_BR: Tenta carregar fonte do sistema; fallback para fonte padrão do PIL  
-    # EN_US: Tries to load system font; falls back to PIL default font  
-    try:  
-        font = ImageFont.truetype(  
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 11  
-        )  
-    except (IOError, OSError):  
-        font = ImageFont.load_default()  
-  
-    # PT_BR: Calcula posição centralizada do texto na imagem  
-    # EN_US: Calculates centered text position on the image  
-    bbox = draw.textbbox((0, 0), label, font=font)  
-    text_w = bbox[2] - bbox[0]  
-    text_h = bbox[3] - bbox[1]  
-    x = (img.width - text_w) // 2  
-    y = (img.height - text_h) // 2  
-  
-    # PT_BR: Desenha o texto branco centralizado  
-    # EN_US: Draws the centered white text  
-    draw.text((x, y), label, fill="white", font=font, align="center")  
-  
-    # PT_BR: Salva como JPEG temporário com nome aleatório para evitar colisões  
-    # EN_US: Saves as temporary JPEG with random name to avoid collisions  
-    temp_path = f"key_label_{random.randint(9999, 999999)}.jpg"  
-    img.save(temp_path, "JPEG")  
-    return temp_path  
   
   
 # =============================================================================  
@@ -200,20 +113,7 @@ def apply_gnome_system_page_schema(device: K1Pro):
     Args:  
         device: K1Pro instance already opened and initialized.  
     """  
-    for key_index, label in KEY_LABELS.items():  
-        # PT_BR: Gera imagem temporária com o rótulo da tecla  
-        # EN_US: Generates temporary image with the key label  
-        temp_path = _generate_label_image(device, label)  
-        try:  
-            # PT_BR: Envia a imagem para o dispositivo e atualiza a tela  
-            # EN_US: Sends the image to the device and refreshes the display  
-            device.set_key_image(key_index, temp_path)  
-            device.refresh()  
-        finally:  
-            # PT_BR: Remove o arquivo temporário mesmo em caso de erro  
-            # EN_US: Removes the temporary file even on error  
-            if os.path.exists(temp_path):  
-                os.remove(temp_path)  
+    render_keys_from_labels(device, KEY_LABELS)  
   
   
 ######################################################################################  
@@ -300,4 +200,4 @@ def handle_key_press(event):
   
     # PT_BR: Lança o aplicativo de forma assíncrona e desacoplada  
     # EN_US: Launches the application asynchronously and detached  
-    _run_cmd(cmd)
+    run_cmd(cmd)
