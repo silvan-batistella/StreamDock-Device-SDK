@@ -1,0 +1,14 @@
+[Unit]  
+Description=StreamDock K1 PRO Controller  
+After=graphical-session.target  
+  
+[Service]  
+Type=simple  
+Environment=DISPLAY=:0  
+Environment=XDG_RUNTIME_DIR=/run/user/%U  
+ExecStart=/xpto/dev/repo/code/StreamDock-Device-SDK/servico/start_streamdock.sh  
+Restart=on-failure  
+RestartSec=3  
+  
+[Install]  
+WantedBy=default.target
