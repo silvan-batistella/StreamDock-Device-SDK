@@ -179,16 +179,14 @@ def handle_selector_key_press(event):
 def handle_knob_1_page_nav(event_type, direction=None, state=None):  
     """  
     PT_BR: Handler do Knob 1:  
-      - ROTAÇÃO: navega páginas (ignorado se seletor visível).  
+      - ROTAÇÃO: navega páginas (funciona mesmo com seletor visível).  
       - PRESSIONAR: toggle do seletor de páginas.  
     EN_US: Knob 1 handler:  
-      - ROTATE: navigates pages (ignored if selector visible).  
+      - ROTATE: navigates pages (works even with selector visible).  
       - PRESS: toggles the page selector.  
     """  
     if event_type == EventType.KNOB_ROTATE:  
         with _lock:  
-            if _showing_selector:  
-                return  
             if direction == Direction.RIGHT:  
                 _switch_to(_current_index + 1)  
             elif direction == Direction.LEFT:  
