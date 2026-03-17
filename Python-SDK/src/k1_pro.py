@@ -18,10 +18,10 @@ from StreamDock.DeviceManager import DeviceManager
 from StreamDock.Devices.K1Pro import K1Pro  
 from StreamDock.InputTypes import EventType, KnobId  
 from handlers.knob_handlers import handle_knob_2, handle_knob_3  
-from handlers.default_keyboard_schema import (  
-    apply_default_keyboard_schema,  
+from handlers.tools_page_schema import (  
+    apply_tools_page_schema,  
     handle_key_press,  
-)  
+) 
 import threading  
 import time  
   
@@ -96,7 +96,7 @@ def main():
   
         # PT_BR: Aplica a página visual padrão com nomes das teclas do teclado  
         # EN_US: Applies the default visual page with keyboard key names  
-        apply_default_keyboard_schema(device)  
+        apply_tools_page_schema(device)  
   
         device.set_key_callback(key_callback)  
         k1pro_devices.append(device)  
