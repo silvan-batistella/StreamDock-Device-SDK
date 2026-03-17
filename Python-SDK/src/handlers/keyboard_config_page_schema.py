@@ -1,5 +1,3 @@
-# Python-SDK/src/handlers/keyboard_config_page_schema.py  
-  
 #####################################################################################  
 #  
 # PT_BR:  
@@ -40,12 +38,9 @@
 #  
 ######################################################################################  
   
-from PIL import Image, ImageDraw, ImageFont  
-from StreamDock.ImageHelpers.PILHelper import create_key_image  
 from StreamDock.Devices.K1Pro import K1Pro  
-from StreamDock.InputTypes import EventType, ButtonKey  
-import os  
-import random  
+from StreamDock.InputTypes import ButtonKey  
+from utils.image import render_keys_from_labels  
   
   
 ######################################################################################  
@@ -103,73 +98,22 @@ _color_index = 0
 _effect_index = 0  
 _speed_value = 4  
 _bl_brightness = 6  
-_scr_brightness_index = 4  # 100%  
+_scr_brightness_index = 2  # 50%  
   
   
 # =============================================================================  
-# PT_BR: FUNÇÕES AUXILIARES — GERAÇÃO DE IMAGENS  
-# EN_US: HELPER FUNCTIONS — IMAGE GENERATION  
+# PT_BR: FUNÇÃO AUXILIAR — ATUALIZAÇÃO DE TECLA INDIVIDUAL  
+# EN_US: HELPER FUNCTION — SINGLE KEY UPDATE  
 # =============================================================================  
   
-def _generate_label_image(label: str, bg_color: str = "black") -> str:  
-    """  
-    PT_BR:  
-    Gera uma imagem 64x64 com o texto centralizado e salva como JPEG temporário.  
-  
-    Args:  
-        label:    texto a ser renderizado na imagem.  
-        bg_color: cor de fundo (padrão: preto).  
-  
-    Returns:  
-        str: caminho do arquivo JPEG temporário.  
-  
-    EN_US:  
-    Generates a 64x64 image with centered text and saves it as a temporary JPEG.  
-  
-    Args:  
-        label:    text to render on the image.  
-        bg_color: background color (default: black).  
-  
-    Returns:  
-        str: path to the temporary JPEG file.  
-    """  
-    img = create_key_image(_device, background=bg_color)  
-    draw = ImageDraw.Draw(img)  
-  
-    try:  
-        font = ImageFont.truetype(  
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 10  
-        )  
-    except (IOError, OSError):  
-        font = ImageFont.load_default()  
-  
-    bbox = draw.textbbox((0, 0), label, font=font)  
-    text_w = bbox[2] - bbox[0]  
-    text_h = bbox[3] - bbox[1]  
-    x = (img.width - text_w) // 2  
-    y = (img.height - text_h) // 2  
-  
-    draw.text((x, y), label, fill="white", font=font, align="center")  
-  
-    temp_path = f"key_label_{random.randint(9999, 999999)}.jpg"  
-    img.save(temp_path, "JPEG")  
-    return temp_path  
-  
-  
-def _update_key(key_index: int, label: str, bg_color: str = "black"):  
+def _update_key(key_index: int, label: str):  
     """  
     PT_BR: Atualiza uma única tecla com novo label (sem re-renderizar toda a página).  
     EN_US: Updates a single key with a new label (without re-rendering the whole page).  
     """  
     if _device is None:  
         return  
-    temp_path = _generate_label_image(label, bg_color)  
-    try:  
-        _device.set_key_image(key_index, temp_path)  
-        _device.refresh()  
-    finally:  
-        if os.path.exists(temp_path):  
-            os.remove(temp_path)  
+    render_keys_from_labels(_device, {key_index: label}, font_size=10)  
   
   
 # =============================================================================  
@@ -245,14 +189,7 @@ def apply_keyboard_config_page_schema(device: K1Pro):
         6: _label_reset(),  
     }  
   
-    for key_index, label in labels.items():  
-        temp_path = _generate_label_image(label)  
-        try:  
-            device.set_key_image(key_index, temp_path)  
-            device.refresh()  
-        finally:  
-            if os.path.exists(temp_path):  
-                os.remove(temp_path)  
+    render_keys_from_labels(device, labels, font_size=10)  
   
   
 ######################################################################################  
@@ -337,7 +274,7 @@ def _handle_reset():
     _effect_index = 1          # Breath  
     _speed_value = 4           # Mid speed  
     _bl_brightness = 6         # Max backlight  
-    _scr_brightness_index = 4  # 100% screen  
+    _scr_brightness_index = 2  # 50% screen  
   
     name, r, g, b = COLOR_PRESETS[_color_index]  
     _device.set_keyboard_rgb_backlight(r, g, b)  
