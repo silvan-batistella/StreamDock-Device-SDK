@@ -36,6 +36,10 @@ from handlers.tools_page_schema import (
     apply_tools_page_schema,  
     handle_key_press as tools_handle_key,  
 )  
+from handlers.multimedia_page_schema import (  
+    apply_multimedia_page_schema,  
+    handle_key_press as media_handle_key,  
+)  
 import threading  
 import time  
   
@@ -43,6 +47,7 @@ import time
 # ─── Registra as páginas (ordem = ordem de navegação) ──────────────────  
 register_page("Keyboard", "dflt", apply_default_keyboard_schema, default_handle_key)  
 register_page("Tools",    "util", apply_tools_page_schema,        tools_handle_key)  
+register_page("Media", "mdia", apply_multimedia_page_schema, media_handle_key)
   
   
 # ─── Knob handlers ────────────────────────────────────────────────────  
