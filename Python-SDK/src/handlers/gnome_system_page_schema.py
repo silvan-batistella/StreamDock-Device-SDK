@@ -1,48 +1,56 @@
-# Python-SDK/src/handlers/eclipse_debug_page_schema.py  
+# Python-SDK/src/handlers/gnome_system_page_schema.py  
   
 #####################################################################################  
 #  
 # PT_BR:  
-# Página "eclipse_debug_page_schema" para o K1 PRO.  
+# Página "gnome_system_page_schema" para o K1 PRO.  
 #  
 # Responsabilidades:  
-#   1. VISUAL: Exibe os nomes dos atalhos de debug do Eclipse nas 6 teclas:  
-#        Linha 1: BRKPT       - RESUME     - INSPT  
-#        Linha 2: STEP INTO   - STEP OVER  - DROP FRM  
+#   1. VISUAL: Exibe os nomes dos utilitários/apps nas 6 teclas:  
+#        Linha 1: BT        - GNM EXTS   - SYS MON  
+#        Linha 2: IRIUN     - OBS        - LUTRS  
 #      Cada tecla recebe uma imagem 64x64 com o nome centralizado em fundo preto.  
 #  
-#   2. COMPORTAMENTO: Ao pressionar uma tecla, simula o atalho de teclado  
-#      correspondente via xdotool:  
-#        KEY_1: Ctrl+Shift+B  (Toggle Breakpoint)  
-#        KEY_2: F8            (Resume)  
-#        KEY_3: Ctrl+Shift+I  (Inspect)  
-#        KEY_4: F5            (Step Into)  
-#        KEY_5: F6            (Step Over)  
-#        KEY_6: F9            (Drop to Frame)  
+#   2. COMPORTAMENTO: Ao pressionar uma tecla, lança o aplicativo correspondente:  
+#        KEY_1: Gerenciador Bluetooth (gnome-control-center bluetooth)  
+#        KEY_2: GNOME Extensions (gnome-extensions-app)  
+#        KEY_3: GNOME System Monitor (gnome-system-monitor)  
+#        KEY_4: Iriun Webcam (iriunwebcam)  
+#        KEY_5: OBS Studio (obs)  
+#        KEY_6: Lutris (lutris)  
 #  
 # Dependências externas:  
-#   - xdotool (simulação de teclas)  
+#   - gnome-control-center  
+#   - gnome-extensions-app (GNOME 40+)  
+#   - gnome-system-monitor  
+#   - iriunwebcam  
+#   - obs  
+#   - lutris  
 #  
 # EN_US:  
-# "eclipse_debug_page_schema" page for the K1 PRO.  
+# "gnome_system_page_schema" page for the K1 PRO.  
 #  
 # Responsibilities:  
-#   1. VISUAL: Displays Eclipse debug shortcut names on the device's 6 keys:  
-#        Row 1: BRKPT       - RESUME     - INSPT  
-#        Row 2: STEP INTO   - STEP OVER  - DROP FRM  
+#   1. VISUAL: Displays utility/app names on the device's 6 keys:  
+#        Row 1: BT        - GNM EXTS   - SYS MON  
+#        Row 2: IRIUN     - OBS        - LUTRS  
 #      Each key receives a 64x64 image with the name centered on a black background.  
 #  
-#   2. BEHAVIOR: When a key is pressed, simulates the corresponding keyboard  
-#      shortcut via xdotool:  
-#        KEY_1: Ctrl+Shift+B  (Toggle Breakpoint)  
-#        KEY_2: F8            (Resume)  
-#        KEY_3: Ctrl+Shift+I  (Inspect)  
-#        KEY_4: F5            (Step Into)  
-#        KEY_5: F6            (Step Over)  
-#        KEY_6: F9            (Drop to Frame)  
+#   2. BEHAVIOR: When a key is pressed, launches the corresponding application:  
+#        KEY_1: Bluetooth Manager (gnome-control-center bluetooth)  
+#        KEY_2: GNOME Extensions (gnome-extensions-app)  
+#        KEY_3: GNOME System Monitor (gnome-system-monitor)  
+#        KEY_4: Iriun Webcam (iriunwebcam)  
+#        KEY_5: OBS Studio (obs)  
+#        KEY_6: Lutris (lutris)  
 #  
 # External dependencies:  
-#   - xdotool (key simulation)  
+#   - gnome-control-center  
+#   - gnome-extensions-app (GNOME 40+)  
+#   - gnome-system-monitor  
+#   - iriunwebcam  
+#   - obs  
+#   - lutris  
 #  
 ######################################################################################  
   
@@ -72,12 +80,12 @@ import subprocess
 ######################################################################################  
   
 KEY_LABELS = {  
-    1: "Break\nPoint",          # Toggle Breakpoint (Ctrl+Shift+B)  
-    2: "Resum",           # Resume (F8)  
-    3: "Inspc",          # Inspect (Ctrl+Shift+I)  
-    4: "Step\nInto",     # Step Into (F5)  
-    5: "Step\nOver",     # Step Over (F6)  
-    6: "Drop\nFrm",      # Drop to Frame (F9)  
+    1: "BT",              # Bluetooth Manager  
+    2: "Gnm\nExts",       # GNOME Extensions  
+    3: "Sys\nMon",        # GNOME System Monitor  
+    4: "Iriun",           # Iriun Webcam  
+    5: "OBS",             # OBS Studio  
+    6: "Lutrs",           # Lutris  
 }  
   
   
@@ -89,7 +97,11 @@ KEY_LABELS = {
 def _run_cmd(cmd):  
     """  
     PT_BR: Executa comando de forma assíncrona (não-bloqueante).  
+           Usa start_new_session=True para desacoplar o processo filho  
+           do terminal/script pai (sobrevive ao encerramento do pai).  
     EN_US: Executes command asynchronously (non-blocking).  
+           Uses start_new_session=True to detach the child process  
+           from the parent terminal/script (survives parent termination).  
     """  
     try:  
         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)  
@@ -164,28 +176,26 @@ def _generate_label_image(device: K1Pro, label: str) -> str:
 # EN_US: PAGE MAIN FUNCTION  
 # =============================================================================  
   
-def apply_eclipse_debug_page_schema(device: K1Pro):  
+def apply_gnome_system_page_schema(device: K1Pro):  
     """  
     PT_BR:  
-    Aplica a página "eclipse_debug_page_schema" no dispositivo K1Pro.  
-    Gera imagens com os nomes dos atalhos de debug do Eclipse e envia  
-    para o dispositivo.  
+    Aplica a página "gnome_system_page_schema" no dispositivo K1Pro.  
+    Gera imagens com os nomes dos utilitários GNOME e envia para o dispositivo.  
   
     Layout:  
-        KEY_1: BRKPT      KEY_2: RSME        KEY_3: INSPT  
-        KEY_4: STEP INTO   KEY_5: STEP OVER   KEY_6: DROP FRM  
+        KEY_1: BT         KEY_2: GNM EXTS    KEY_3: SYS MON  
+        KEY_4: IRIUN      KEY_5: OBS         KEY_6: LUTRS  
   
     Args:  
         device: instância do K1Pro já aberta e inicializada.  
   
     EN_US:  
-    Applies the "eclipse_debug_page_schema" page to the K1Pro device.  
-    Generates images with Eclipse debug shortcut names and sends them  
-    to the device.  
+    Applies the "gnome_system_page_schema" page to the K1Pro device.  
+    Generates images with GNOME utility names and sends them to the device.  
   
     Layout:  
-        KEY_1: BRKPT      KEY_2: RSME        KEY_3: INSPT  
-        KEY_4: STEP INTO   KEY_5: STEP OVER   KEY_6: DROP FRM  
+        KEY_1: BT         KEY_2: GNM EXTS    KEY_3: SYS MON  
+        KEY_4: IRIUN      KEY_5: OBS         KEY_6: LUTRS  
   
     Args:  
         device: K1Pro instance already opened and initialized.  
@@ -208,70 +218,70 @@ def apply_eclipse_debug_page_schema(device: K1Pro):
   
 ######################################################################################  
 #  
-# PT_BR: MAPEAMENTO DE TECLAS → AÇÕES DE TECLADO  
+# PT_BR: MAPEAMENTO DE TECLAS → COMANDOS DE LANÇAMENTO  
 #  
-# KEY_ACTIONS: dicionário {ButtonKey: str} que mapeia cada tecla do K1Pro  
-#   para o atalho de teclado no formato aceito pelo xdotool.  
-#  
-#   Layout:  
-#     KEY_1: ctrl+shift+b   KEY_2: F8            KEY_3: ctrl+shift+i  
-#     KEY_4: F5             KEY_5: F6            KEY_6: F9  
-#  
-# EN_US: KEY → KEYBOARD ACTION MAPPING  
-#  
-# KEY_ACTIONS: dict {ButtonKey: str} mapping each K1Pro key  
-#   to the keyboard shortcut in xdotool format.  
+# KEY_COMMANDS: dicionário {ButtonKey: list[str]} que mapeia cada tecla do K1Pro  
+#   para o comando de lançamento do aplicativo (formato subprocess).  
 #  
 #   Layout:  
-#     KEY_1: ctrl+shift+b   KEY_2: F8            KEY_3: ctrl+shift+i  
-#     KEY_4: F5             KEY_5: F6            KEY_6: F9  
+#     KEY_1: gnome-control-center bluetooth   KEY_2: gnome-extensions-app   KEY_3: gnome-system-monitor  
+#     KEY_4: iriunwebcam                      KEY_5: obs                    KEY_6: lutris  
+#  
+# EN_US: KEY → LAUNCH COMMAND MAPPING  
+#  
+# KEY_COMMANDS: dict {ButtonKey: list[str]} mapping each K1Pro key  
+#   to the application launch command (subprocess format).  
+#  
+#   Layout:  
+#     KEY_1: gnome-control-center bluetooth   KEY_2: gnome-extensions-app   KEY_3: gnome-system-monitor  
+#     KEY_4: iriunwebcam                      KEY_5: obs                    KEY_6: lutris  
 #  
 ######################################################################################  
   
-KEY_ACTIONS = {  
-    ButtonKey.KEY_1: "ctrl+shift+b",      # Toggle Breakpoint  
-    ButtonKey.KEY_2: "F8",                 # Resume  
-    ButtonKey.KEY_3: "ctrl+shift+i",       # Inspect  
-    ButtonKey.KEY_4: "F5",                 # Step Into  
-    ButtonKey.KEY_5: "F6",                 # Step Over  
-    ButtonKey.KEY_6: "F9",                 # Drop to Frame  
+KEY_COMMANDS = {  
+    ButtonKey.KEY_1: ["gnome-control-center", "bluetooth"],  
+    ButtonKey.KEY_2: ["gnome-extensions-app"],  
+    ButtonKey.KEY_3: ["gnome-system-monitor"],  
+    ButtonKey.KEY_4: ["iriunwebcam"],  
+    ButtonKey.KEY_5: ["obs"],  
+    ButtonKey.KEY_6: ["lutris"],  
 }  
   
   
 def handle_key_press(event):  
     """  
     PT_BR:  
-    Handler de pressionamento de teclas da página eclipse_debug_page_schema.  
+    Handler de pressionamento de teclas da página gnome_system_page_schema.  
   
-    Quando uma tecla do K1Pro é pressionada (state == 1), simula o atalho  
-    de teclado correspondente do Eclipse usando xdotool com --clearmodifiers.  
+    Quando uma tecla do K1Pro é pressionada (state == 1), lança o aplicativo  
+    correspondente via subprocess.Popen (não-bloqueante, desacoplado).  
     Eventos de release (state == 0) são ignorados.  
   
-    Ações:  
-        ctrl+shift+b:  Toggle Breakpoint  
-        F8:            Resume (continuar execução)  
-        ctrl+shift+i:  Inspect (inspecionar variável/expressão)  
-        F5:            Step Into (entrar na função)  
-        F6:            Step Over (passar por cima)  
-        F9:            Drop to Frame (voltar ao frame)  
+    Aplicativos:  
+        KEY_1: Gerenciador Bluetooth (gnome-control-center bluetooth)  
+        KEY_2: GNOME Extensions (gnome-extensions-app)  
+        KEY_3: GNOME System Monitor (gnome-system-monitor)  
+        KEY_4: Iriun Webcam (iriunwebcam)  
+        KEY_5: OBS Studio (obs)  
+        KEY_6: Lutris (lutris)  
   
     Args:  
         event: InputEvent com event_type == EventType.BUTTON  
   
     EN_US:  
-    Key press handler for the eclipse_debug_page_schema page.  
+    Key press handler for the gnome_system_page_schema page.  
   
-    When a K1Pro key is pressed (state == 1), simulates the corresponding  
-    Eclipse keyboard shortcut using xdotool with --clearmodifiers.  
+    When a K1Pro key is pressed (state == 1), launches the corresponding  
+    application via subprocess.Popen (non-blocking, detached).  
     Release events (state == 0) are ignored.  
   
-    Actions:  
-        ctrl+shift+b:  Toggle Breakpoint  
-        F8:            Resume (continue execution)  
-        ctrl+shift+i:  Inspect (inspect variable/expression)  
-        F5:            Step Into  
-        F6:            Step Over  
-        F9:            Drop to Frame  
+    Applications:  
+        KEY_1: Bluetooth Manager (gnome-control-center bluetooth)  
+        KEY_2: GNOME Extensions (gnome-extensions-app)  
+        KEY_3: GNOME System Monitor (gnome-system-monitor)  
+        KEY_4: Iriun Webcam (iriunwebcam)  
+        KEY_5: OBS Studio (obs)  
+        KEY_6: Lutris (lutris)  
   
     Args:  
         event: InputEvent with event_type == EventType.BUTTON  
@@ -281,13 +291,13 @@ def handle_key_press(event):
     if event.state != 1:  
         return  
   
-    # PT_BR: Busca o atalho de teclado correspondente  
-    # EN_US: Looks up the corresponding keyboard shortcut  
-    xdotool_key = KEY_ACTIONS.get(event.key)  
-    if xdotool_key is None:  
-        print(f"Key {event.key} has no action mapped.", flush=True)  
+    # PT_BR: Busca o comando de lançamento correspondente  
+    # EN_US: Looks up the corresponding launch command  
+    cmd = KEY_COMMANDS.get(event.key)  
+    if cmd is None:  
+        print(f"Key {event.key} has no command mapped.", flush=True)  
         return  
   
-    # PT_BR: Simula o atalho via xdotool com --clearmodifiers  
-    # EN_US: Simulates the shortcut via xdotool with --clearmodifiers  
-    _run_cmd(["xdotool", "key", "--clearmodifiers", xdotool_key])
+    # PT_BR: Lança o aplicativo de forma assíncrona e desacoplada  
+    # EN_US: Launches the application asynchronously and detached  
+    _run_cmd(cmd)

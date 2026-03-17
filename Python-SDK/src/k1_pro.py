@@ -45,6 +45,10 @@ from handlers.app_launcher_page_schema import (
     apply_app_launcher_page_schema,  
     handle_key_press as launcher_handle_key,  
 ) 
+from handlers.gnome_system_page_schema import (  
+    apply_gnome_system_page_schema,  
+    handle_key_press as gnome_handle_key,  
+)  
 import threading  
 import time  
   
@@ -55,6 +59,7 @@ register_page("Tools",    "util", apply_tools_page_schema,        tools_handle_k
 register_page("Media", "mdia", apply_multimedia_page_schema, media_handle_key)
 register_page("Eclipse Debug", "eclp", apply_eclipse_debug_page_schema, eclipse_handle_key)
 register_page("App Launcher", "appl", apply_app_launcher_page_schema, launcher_handle_key)
+register_page("System", "SYS", apply_gnome_system_page_schema, gnome_handle_key)
 
 
 # ─── Knob handlers ────────────────────────────────────────────────────  
