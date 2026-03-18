@@ -1,29 +1,44 @@
 """  
 PT_BR:  
-Módulo centralizado para simulação de teclas via ydotool.  
+Módulo centralizado para simulação de teclas via python-evdev.  
   
-O ydotool trabalha com keycodes numéricos do kernel Linux  
-(definidos em linux/input-event-codes.h), no formato:  
-    ydotool key <keycode>:1 <keycode>:0  
-onde :1 = press e :0 = release.  
+Utiliza a biblioteca python-evdev para injetar eventos de teclado  
+diretamente via uinput do kernel Linux, sem dependências externas  
+como xdotool ou ydotool.  
   
+Os keycodes são numéricos, definidos em linux/input-event-codes.h.  
 Para combos (ex: ctrl+shift+b), todos os modificadores são  
 pressionados primeiro, depois a tecla principal, e o release  
 acontece na ordem inversa.  
   
+Requisitos:  
+    - pip install evdev  
+    - Usuário no grupo 'input' com acesso a /dev/uinput  
+  
 EN_US:  
-Centralized module for key simulation via ydotool.  
+Centralized module for key simulation via python-evdev.  
   
-ydotool uses numeric keycodes from the Linux kernel  
-(defined in linux/input-event-codes.h), in the format:  
-    ydotool key <keycode>:1 <keycode>:0  
-where :1 = press and :0 = release.  
+Uses the python-evdev library to inject keyboard events directly  
+via the Linux kernel's uinput, with no external dependencies  
+like xdotool or ydotool.  
   
+Keycodes are numeric, defined in linux/input-event-codes.h.  
 For combos (e.g., ctrl+shift+b), all modifiers are pressed  
 first, then the main key, and release happens in reverse order.  
+  
+Requirements:  
+    - pip install evdev  
+    - User in the 'input' group with access to /dev/uinput  
 """  
   
-from utils.commands import run_cmd  
+from evdev import UInput, ecodes  
+  
+  
+# ---------------------------------------------------------------------------  
+# PT_BR: Dispositivo virtual de teclado (criado uma vez no import do módulo)  
+# EN_US: Virtual keyboard device (created once on module import)  
+# ---------------------------------------------------------------------------  
+_ui = UInput()  
   
   
 # ---------------------------------------------------------------------------  
@@ -85,29 +100,29 @@ KEYCODE_MAP = {
 def send_key(key_combo: str):  
     """  
     PT_BR:  
-    Simula pressionamento de tecla(s) via ydotool.  
+    Simula pressionamento de tecla(s) via python-evdev (uinput).  
   
     Aceita formato simbólico idêntico ao que era usado com xdotool:  
         "F8"              → tecla simples  
         "ctrl+shift+b"    → combo com modificadores  
         "Page_Up"         → tecla de navegação  
   
-    Converte automaticamente para keycodes do kernel e monta a  
-    sequência press(:1)/release(:0) na ordem correta.  
+    Converte automaticamente para keycodes do kernel e injeta  
+    eventos EV_KEY diretamente via uinput.  
   
     Args:  
         key_combo: string no formato "tecla" ou "mod1+mod2+tecla"  
   
     EN_US:  
-    Simulates key press(es) via ydotool.  
+    Simulates key press(es) via python-evdev (uinput).  
   
     Accepts symbolic format identical to what was used with xdotool:  
         "F8"              → single key  
         "ctrl+shift+b"    → combo with modifiers  
         "Page_Up"         → navigation key  
   
-    Automatically converts to kernel keycodes and builds the  
-    press(:1)/release(:0) sequence in the correct order.  
+    Automatically converts to kernel keycodes and injects  
+    EV_KEY events directly via uinput.  
   
     Args:  
         key_combo: string in the format "key" or "mod1+mod2+key"  
@@ -122,11 +137,15 @@ def send_key(key_combo: str):
             return  
         keycodes.append(kc)  
   
-    # PT_BR: Monta sequência: press todos na ordem, release na ordem inversa  
-    # EN_US: Builds sequence: press all in order, release in reverse order  
-    args = [f"{kc}:1" for kc in keycodes] + [f"{kc}:0" for kc in reversed(keycodes)]  
+    # PT_BR: Press de todos os keycodes na ordem, release na ordem inversa  
+    # EN_US: Press all keycodes in order, release in reverse order  
+    for kc in keycodes:  
+        _ui.write(ecodes.EV_KEY, kc, 1)   # press  
+    _ui.syn()  
   
-    run_cmd(["ydotool", "key"] + args)  
+    for kc in reversed(keycodes):  
+        _ui.write(ecodes.EV_KEY, kc, 0)   # release  
+    _ui.syn()  
   
   
 def get_action_for_event(event, key_actions: dict):  
