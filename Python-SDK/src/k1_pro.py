@@ -1,5 +1,3 @@
-# Python-SDK/src/k1_pro.py  
-  
 ######################################################################################  
 #  
 # PT_BR:  
@@ -23,7 +21,8 @@ from handlers.page_manager import (
     init_pages,  
     get_current_page,  
     handle_knob_1_page_nav,  
-    handle_selector_key_press,  
+    handle_selector_key_press,
+    reset_page_timeout,  
 )  
   
 # PT_BR: Importa as duas páginas  
@@ -110,6 +109,8 @@ def key_callback(device, event):
                 # EN_US: Selector visible — treat as page selection  
                 handle_selector_key_press(event)  
             elif page["handle_key"]:  
+                if getattr(event, "state", None) == 1:  
+                    reset_page_timeout()  
                 page["handle_key"](event)  
   
     except Exception as e:  
