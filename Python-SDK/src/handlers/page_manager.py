@@ -1,5 +1,3 @@
-# Python-SDK/src/handlers/page_manager.py  
-  
 ######################################################################################  
 #  
 # PT_BR: Gerenciador de páginas para o K1 PRO.  
@@ -13,17 +11,26 @@
 ######################################################################################  
   
 import os  
-import random 
+import random  
 import threading  
-from PIL import Image, ImageDraw, ImageFont 
-from StreamDock.ImageHelpers.PILHelper import create_key_image
+from PIL import Image, ImageDraw, ImageFont  
+from StreamDock.ImageHelpers.PILHelper import create_key_image  
 from StreamDock.InputTypes import EventType, Direction, ButtonKey  
   
 _pages = []  
 _device = None  
 _current_index = 0  
 _lock = threading.Lock()  
-_showing_selector = False
+_showing_selector = False  
+  
+_knob_pressed = False  
+_knob_rotated_while_pressed = False  
+  
+PAGE_TIMEOUT_DEFAULT = 15  
+PAGE_TIMEOUT_LONG    = 5 * 60  
+_NO_TIMEOUT_PAGES    = {"Keyboard"}  
+_LONG_TIMEOUT_PAGES  = {"Eclipse Debug"}  
+_timeout_timer       = None  
   
   
 def register_page(name, short_label, apply_fn, handle_key_fn):  
@@ -33,8 +40,8 @@ def register_page(name, short_label, apply_fn, handle_key_fn):
     """  
     _pages.append({  
         "name": name,  
-        "apply": apply_fn,
-         "label": short_label,  
+        "apply": apply_fn,  
+        "label": short_label,  
         "handle_key": handle_key_fn,  
     })  
   
@@ -48,6 +55,7 @@ def init_pages(device):
     _device = device  
     _current_index = 0  
     _showing_selector = False  
+    _cancel_timeout()  
     if _pages:  
         _pages[0]["apply"](device)  
   
@@ -57,7 +65,7 @@ def get_current_page():
     PT_BR: Retorna a página ativa (dict com 'name', 'apply', 'handle_key').  
     EN_US: Returns the active page (dict with 'name', 'apply', 'handle_key').  
     """  
-    if _showing_selector or not _pages:
+    if _showing_selector or not _pages:  
         return None  
     return _pages[_current_index]  
   
@@ -67,16 +75,17 @@ def _switch_to(index):
     PT_BR: Muda para a página no índice dado (wrap-around com %).  
     EN_US: Switches to the page at the given index (wrap-around with %).  
     """  
-    global _current_index, _showing_selector    
-    if not _pages or _device is None:
+    global _current_index, _showing_selector  
+    if not _pages or _device is None:  
         return  
-    _showing_selector = False
+    _showing_selector = False  
     _current_index = index % len(_pages)  
     page = _pages[_current_index]  
     print(f"[PageManager] Page {_current_index}: {page['name']}", flush=True)  
-    page["apply"](_device)
-
-
+    page["apply"](_device)  
+    _schedule_timeout(page["name"])  
+  
+  
 # ─── Seletor de páginas ───────────────────────────────────────────────  
   
 def _generate_selector_image(label):  
@@ -118,16 +127,17 @@ def _generate_blank_image():
   
 def _show_selector():  
     """  
-    PT_BR: Renderiza o seletor de páginas nas 6 teclas.  
-    EN_US: Renders the page selector on the 6 keys.  
+    PT_BR: Renderiza o seletor de páginas nas 6 teclas (exclui KB Config, última página).  
+    EN_US: Renders the page selector on the 6 keys (excludes KB Config, last page).  
     """  
     global _showing_selector  
     _showing_selector = True  
+    navigable_count = len(_pages) - 1  # exclui KB Config (sempre o último)  
   
     for key_index in range(1, 7):  
         page_idx = key_index - 1  
   
-        if page_idx < len(_pages):  
+        if page_idx < navigable_count:  
             temp_path = _generate_selector_image(_pages[page_idx]["label"])  
         else:  
             temp_path = _generate_blank_image()  
@@ -152,7 +162,50 @@ def _hide_selector():
     page = _pages[_current_index]  
     print(f"[PageManager] Selector hidden -> page {_current_index}: {page['name']}", flush=True)  
     page["apply"](_device)  
+    _schedule_timeout(page["name"])  
   
+  
+# ─── Timeout de retorno à página default ─────────────────────────────  
+  
+def _get_page_timeout(page_name):  
+    if page_name in _NO_TIMEOUT_PAGES:  
+        return None  
+    if page_name in _LONG_TIMEOUT_PAGES:  
+        return PAGE_TIMEOUT_LONG  
+    return PAGE_TIMEOUT_DEFAULT  
+  
+  
+def _cancel_timeout():  
+    global _timeout_timer  
+    if _timeout_timer is not None:  
+        _timeout_timer.cancel()  
+        _timeout_timer = None  
+  
+  
+def _do_timeout_return():  
+    with _lock:  
+        if _current_index != 0:  
+            print("[PageManager] Timeout: retornando para página default", flush=True)  
+            _switch_to(0)  
+  
+  
+def _schedule_timeout(page_name):  
+    _cancel_timeout()  
+    global _timeout_timer  
+    timeout = _get_page_timeout(page_name)  
+    if timeout is not None:  
+        _timeout_timer = threading.Timer(timeout, _do_timeout_return)  
+        _timeout_timer.daemon = True  
+        _timeout_timer.start()  
+  
+  
+def reset_page_timeout():  
+    """Reseta o timer de inatividade da página atual (chamar ao pressionar teclas)."""  
+    if _pages and 0 <= _current_index < len(_pages):  
+        _schedule_timeout(_pages[_current_index]["name"])  
+  
+  
+# ─── Handlers de input ────────────────────────────────────────────────  
   
 def handle_selector_key_press(event):  
     """  
@@ -161,6 +214,8 @@ def handle_selector_key_press(event):
     """  
     if event.state != 1:  
         return  
+  
+    navigable_count = len(_pages) - 1  # exclui KB Config (sempre o último)  
   
     key_to_index = {  
         ButtonKey.KEY_1: 0,  
@@ -172,30 +227,48 @@ def handle_selector_key_press(event):
     }  
   
     page_idx = key_to_index.get(event.key)  
-    if page_idx is not None and page_idx < len(_pages):  
-        _switch_to(page_idx)
+    if page_idx is not None and page_idx < navigable_count:  
+        _switch_to(page_idx)  
   
   
 def handle_knob_1_page_nav(event_type, direction=None, state=None):  
     """  
     PT_BR: Handler do Knob 1:  
-      - ROTAÇÃO: navega páginas (funciona mesmo com seletor visível).  
-      - PRESSIONAR: toggle do seletor de páginas.  
+      - ROTAÇÃO (sem pressionar): navega páginas 0..N-2 (KB Config excluída).  
+      - ROTAÇÃO (com knob pressionado): esquerda=KB Config, direita=Seletor.  
+      - PRESSIONAR + SOLTAR (sem rotação): toggle do seletor de páginas.  
     EN_US: Knob 1 handler:  
-      - ROTATE: navigates pages (works even with selector visible).  
-      - PRESS: toggles the page selector.  
+      - ROTATE (not pressed): navigates pages 0..N-2 (KB Config excluded).  
+      - ROTATE (knob held): left=KB Config, right=Selector.  
+      - PRESS + RELEASE (no rotation): toggles the page selector.  
     """  
+    global _knob_pressed, _knob_rotated_while_pressed  
+  
     if event_type == EventType.KNOB_ROTATE:  
         with _lock:  
-            if direction == Direction.RIGHT:  
-                _switch_to(_current_index + 1)  
-            elif direction == Direction.LEFT:  
-                _switch_to(_current_index - 1)  
+            if _knob_pressed:  
+                _knob_rotated_while_pressed = True  
+                if direction == Direction.LEFT:  
+                    _switch_to(len(_pages) - 1)  
+                elif direction == Direction.RIGHT:  
+                    _show_selector()  
+            else:  
+                navigable_count = len(_pages) - 1  # exclui KB Config (último)  
+                base = _current_index if _current_index < navigable_count else 0  
+                if direction == Direction.RIGHT:  
+                    _switch_to((base + 1) % navigable_count)  
+                elif direction == Direction.LEFT:  
+                    _switch_to((base - 1) % navigable_count)  
   
     elif event_type == EventType.KNOB_PRESS:  
         if state == 1:  
-            with _lock:  
-                if _showing_selector:  
-                    _hide_selector()  
-                else:  
-                    _show_selector()
+            _knob_pressed = True  
+            _knob_rotated_while_pressed = False  
+        elif state == 0:  
+            _knob_pressed = False  
+            if not _knob_rotated_while_pressed:  
+                with _lock:  
+                    if _showing_selector:  
+                        _hide_selector()  
+                    else:  
+                        _show_selector()
